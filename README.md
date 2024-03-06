@@ -35,42 +35,35 @@ DECLARE @newName VARCHAR(80);
 SET @newName = CONVERT(VARCHAR(80), SERVERPROPERTY('MachineName'));
 EXEC sp_dropserver @@SERVERNAME;
 EXEC sp_addserver @newName, 'local';
-Restart the containers to apply the changes.
 ```
+Restart the containers to apply the changes.
 
 Once the container names are updated, execute the following SQL script to create the Availability Group (AG) and join the secondary replicas:
 
 ```sql
 CREATE AVAILABILITY GROUP [AG1]
 WITH (
-    AUTOMATED_BACKUP_PREFERENCE = SECONDARY,
-    DB_FAILOVER = OFF,
-    DTC_SUPPORT = NONE,
-    CLUSTER_TYPE = EXTERNAL,
-    REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 0
+    CLUSTER_TYPE = NONE
 )
 FOR REPLICA ON
     N'sqlNode1' WITH (
         ENDPOINT_URL = N'TCP://sqlNode1.lab.local:5022',
-        FAILOVER_MODE = EXTERNAL,
-        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,
-        BACKUP_PRIORITY = 50,
-        SEEDING_MODE = MANUAL,
-        SECONDARY_ROLE (ALLOW_CONNECTIONS = NO)
+        FAILOVER_MODE = MANUAL,
+        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,      
+        SEEDING_MODE = AUTOMATIC,
+        SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
     ),
     N'sqlNode2' WITH (
         ENDPOINT_URL = N'TCP://sqlNode2.lab.local:5022',
-        FAILOVER_MODE = EXTERNAL,
-        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,
-        BACKUP_PRIORITY = 50,
+        FAILOVER_MODE = MANUAL,
+        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,     
         SEEDING_MODE = MANUAL,
         SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
     ),
     N'sqlNode3' WITH (
         ENDPOINT_URL = N'TCP://sqlNode3.lab.local:5022',
-        FAILOVER_MODE = EXTERNAL,
-        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,
-        BACKUP_PRIORITY = 50,
+        FAILOVER_MODE = MANUAL,
+        AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,       
         SEEDING_MODE = MANUAL,
         SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
     );
