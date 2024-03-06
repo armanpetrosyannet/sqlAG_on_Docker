@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  db1:
+    container_name: sqlNode1
+    image: sql2019_alwayson_node
+    hostname: sqlNode1
+    domainname: lab.local
+    volumes:
+      - mssql-server-linux-datadb1:/var/opt/mssql/data/sqlNode1
+      - ./certificate:/usr/certificate
+    environment:
+      MSSQL_SA_PASSWORD: "PaSSw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "14331:1433"
+      - "15021:5022"
+    extra_hosts:
+      - "sqlNode2.lab.local:172.22.224.22"
+      - "sqlNode3.lab.local:172.22.224.23"
+    networks:
+      internal:
+        ipv4_address: 172.22.224.21
+
+  db2:
+    container_name: sqlNode2
+    image: sql2019_alwayson_node
+    hostname: sqlNode2
+    domainname: lab.local
+    volumes:
+      - mssql-server-linux-datadb2:/var/opt/mssql/data/sqlNode2
+      - ./certificate:/usr/certificate
+    environment:
+      MSSQL_SA_PASSWORD: "PaSSw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "14332:1433"
+      - "15022:5022"
+    extra_hosts:
+      - "sqlNode1.lab.local:172.22.224.21"
+      - "sqlNode3.lab.local:172.22.224.23"
+    networks:
+      internal:
+        ipv4_address: 172.22.224.22
+
+  db3:
+    container_name: sqlNode3
+    image: sql2019_alwayson_node
+    hostname: sqlNode3
+    domainname: lab.local
+    volumes:
+      - mssql-server-linux-datadb3:/var/opt/mssql/data/sqlNode3
+      - ./certificate:/usr/certificate
+    environment:
+      MSSQL_SA_PASSWORD: "PaSSw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "14333:1433"
+      - "15023:5022"
+    extra_hosts:
+      - "sqlNode1.lab.local:172.22.224.21"
+      - "sqlNode2.lab.local:172.22.224.22"
+    networks:
+      internal:
+        ipv4_address: 172.22.224.23
+
+volumes:
+  mssql-server-linux-datadb1:
+  mssql-server-linux-datadb2:
+  mssql-server-linux-datadb3:
+  certificate:
+
+networks:
+  internal:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.224.0/24
