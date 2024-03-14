@@ -57,21 +57,21 @@ FOR REPLICA ON
         ENDPOINT_URL = N'TCP://sqlNode2.lab.local:5022',
         FAILOVER_MODE = MANUAL,
         AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,     
-        SEEDING_MODE = MANUAL,
+        SEEDING_MODE = AUTOMATIC,
         SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
     ),
     N'sqlNode3' WITH (
         ENDPOINT_URL = N'TCP://sqlNode3.lab.local:5022',
         FAILOVER_MODE = MANUAL,
         AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT,       
-        SEEDING_MODE = MANUAL,
+        SEEDING_MODE = AUTOMATIC,
         SECONDARY_ROLE (ALLOW_CONNECTIONS = ALL)
     );
 GO
 ```
 After creating the AG, execute the following command on each secondary replica to change the cluster type:
 ```sql
-ALTER AVAILABILITY GROUP [AG1] JOIN WITH (CLUSTER_TYPE = EXTERNAL);
+ALTER AVAILABILITY GROUP [AG1] JOIN WITH (CLUSTER_TYPE = NONE);
 ```
 ## To check the availability group status using SQL Server Management Studio (SSMS), you can use the following steps:
 
