@@ -9,7 +9,7 @@ A fully scripted **3-node SQL Server 2019 Always On Availability Group** running
 
 Perfect for **learning AG internals**, **testing failover scenarios**, **validating backup/restore strategies**, or building a **CI sandbox** for code that depends on read-only secondary replicas.
 
----
+-----
 
 ## Architecture
 
@@ -33,25 +33,25 @@ Perfect for **learning AG internals**, **testing failover scenarios**, **validat
                 └──────────────────────────────────────────────┘
 ```
 
-| Node | Container | Internal IP | SQL Port (host) | Endpoint Port (host) |
-|------|-----------|-------------|-----------------|----------------------|
-| Primary   | `sqlNode1` | 172.22.224.21 | `14331` | `15021` |
-| Secondary | `sqlNode2` | 172.22.224.22 | `14332` | `15022` |
-| Secondary | `sqlNode3` | 172.22.224.23 | `14333` | `15023` |
+|Node     |Container |Internal IP  |SQL Port (host)|Endpoint Port (host)|
+|---------|----------|-------------|---------------|--------------------|
+|Primary  |`sqlNode1`|172.22.224.21|`14331`        |`15021`             |
+|Secondary|`sqlNode2`|172.22.224.22|`14332`        |`15022`             |
+|Secondary|`sqlNode3`|172.22.224.23|`14333`        |`15023`             |
 
----
+-----
 
 ## How it works
 
 This setup combines three pieces that, together, get around the usual AG requirement of a Windows failover cluster or a Linux Pacemaker cluster:
 
 1. **`CLUSTER_TYPE = NONE`** — the AG is created without any external clustering layer. Failover is manual, which is fine for a lab.
-2. **Certificate-based endpoint authentication** — `command.sql` generates a database master key and a `dbm_certificate` shared across all three nodes, so replicas trust each other without Kerberos or AD.
-3. **Static IPs and `extra_hosts`** — each container gets a fixed IP on a user-defined bridge network and a hosts-file entry for its peers, so `sqlNode1.lab.local`, `sqlNode2.lab.local`, `sqlNode3.lab.local` resolve correctly inside the AG configuration.
+1. **Certificate-based endpoint authentication** — `command.sql` generates a database master key and a `dbm_certificate` shared across all three nodes, so replicas trust each other without Kerberos or AD.
+1. **Static IPs and `extra_hosts`** — each container gets a fixed IP on a user-defined bridge network and a hosts-file entry for its peers, so `sqlNode1.lab.local`, `sqlNode2.lab.local`, `sqlNode3.lab.local` resolve correctly inside the AG configuration.
 
 The `setup.bat` script builds the base image, runs `command.sql` inside a throwaway container to bake in the certificate and HADR endpoint, then commits the result as `sql2019_alwayson_node` — the image used by all three replicas in `docker-compose.yml`.
 
----
+-----
 
 ## Quick start
 
@@ -70,6 +70,7 @@ setup.bat
 ```
 
 This will:
+
 - Build `sql2019_alwayson` from the Dockerfile
 - Spin up a temporary container, run `command.sql` to provision the certificate and HADR endpoint
 - Commit the result as `sql2019_alwayson_node`
@@ -84,7 +85,7 @@ You should now have `sqlNode1`, `sqlNode2`, and `sqlNode3` running on the `inter
 
 ### 3. Fix the SQL `@@SERVERNAME` on each node
 
-Containers inherit the image's original machine name, so each replica needs to be re-registered with its actual hostname. Run this **on each container**:
+Containers inherit the image’s original machine name, so each replica needs to be re-registered with its actual hostname. Run this **on each container**:
 
 ```sql
 DECLARE @newName VARCHAR(80);
@@ -137,9 +138,10 @@ On both `sqlNode2` and `sqlNode3`:
 
 ```sql
 ALTER AVAILABILITY GROUP [AG1] JOIN WITH (CLUSTER_TYPE = NONE);
-GRANT ALTER ANY DATABASE TO [dbm_login];
 ALTER AVAILABILITY GROUP [AG1] GRANT CREATE ANY DATABASE;
 ```
+
+The `GRANT CREATE ANY DATABASE` is required on each secondary because of `SEEDING_MODE = AUTOMATIC` — it lets the AG create the seeded databases on the secondary replica.
 
 ### 6. Add a database
 
@@ -154,7 +156,7 @@ ALTER AVAILABILITY GROUP [AG1] ADD DATABASE TestDB;
 
 With `SEEDING_MODE = AUTOMATIC`, the database will replicate to both secondaries automatically.
 
----
+-----
 
 ## Verifying the AG
 
@@ -174,18 +176,18 @@ JOIN sys.dm_hadr_availability_replica_states ars ON ar.replica_id = ars.replica_
 
 You should see one `PRIMARY` and two `SECONDARY` replicas, all `HEALTHY` and `CONNECTED`.
 
----
+-----
 
 ## Repository layout
 
-| File | What it does |
-|------|--------------|
-| `Dockerfile` | Ubuntu 18.04 + SQL Server 2019 with `hadr.hadrenabled = 1` |
-| `command.sql` | Master key, certificate, HADR endpoint on port 5022 |
-| `setup.bat` | Builds the image, bakes in the cert, commits `sql2019_alwayson_node` |
-| `docker-compose.yml` | 3-node bridge network with static IPs and shared certificate volume |
+|File                |What it does                                                        |
+|--------------------|--------------------------------------------------------------------|
+|`Dockerfile`        |Ubuntu 18.04 + SQL Server 2019 with `hadr.hadrenabled = 1`          |
+|`command.sql`       |Master key, certificate, HADR endpoint on port 5022                 |
+|`setup.bat`         |Builds the image, bakes in the cert, commits `sql2019_alwayson_node`|
+|`docker-compose.yml`|3-node bridge network with static IPs and shared certificate volume |
 
----
+-----
 
 ## Caveats
 
@@ -194,7 +196,7 @@ You should see one `PRIMARY` and two `SECONDARY` replicas, all `HEALTHY` and `CO
 - **The SA password is hard-coded** to `PaSSw0rd` for convenience. Change `SA_PASSWORD` in the `Dockerfile` and `MSSQL_SA_PASSWORD` in `docker-compose.yml` before exposing this anywhere outside your laptop.
 - **Ubuntu 18.04 is out of standard support.** For a longer-lived setup, bump the base image to 20.04 or 22.04 and update the Microsoft repo accordingly.
 
----
+-----
 
 ## Why this exists
 
@@ -205,7 +207,7 @@ Spinning up a multi-node AG traditionally means several Windows VMs, a domain co
 - Validate scripts that rely on `sys.dm_hadr_*` DMVs
 - Train new DBAs on AG mechanics without provisioning a lab domain
 
----
+-----
 
 ## License
 
